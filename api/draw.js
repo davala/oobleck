@@ -71,6 +71,13 @@ module.exports = async function handler(req, res) {
 
   const prompt = buildPrompt(category, profile);
 
+  const requestBody = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{ role: 'user', content: prompt }],
+  };
+  console.log('[draw] request body:', JSON.stringify(requestBody));
+
   let upstream;
   try {
     upstream = await fetch('https://api.anthropic.com/v1/messages', {
@@ -80,18 +87,17 @@ module.exports = async function handler(req, res) {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+      body: JSON.stringify(requestBody),
     });
   } catch (err) {
+    console.log('[draw] fetch error:', err.message);
     res.status(502).json({ error: 'Failed to reach Anthropic API.' });
     return;
   }
 
   const data = await upstream.json();
+  console.log('[draw] response status:', upstream.status);
+  console.log('[draw] response body:', JSON.stringify(data));
 
   if (!upstream.ok) {
     res.status(upstream.status).json({ error: data?.error?.message || 'Anthropic API error.' });
