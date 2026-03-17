@@ -555,8 +555,13 @@ async function callDraw(category) {
 
 // ── DRAW ───────────────────────────────────────────────────────────────────
 
+function firstThreeWords(text) {
+  return text.trim().split(/\s+/).slice(0, 3).join(' ').toLowerCase();
+}
+
 function isDuplicate(text) {
-  return drawHistory.includes(text);
+  const prefix = firstThreeWords(text);
+  return drawHistory.some(entry => firstThreeWords(entry) === prefix);
 }
 
 function appendHistory(text) {
