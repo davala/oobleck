@@ -28,14 +28,25 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     min-height: 100vh;
     padding: 24px 16px;
   }
 
+  .site-title {
+    width: 100%;
+    max-width: 680px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding-bottom: 40px;
+    flex-shrink: 0;
+  }
+
   /* ── SCREENS ── */
   .screen { display: none; width: 100%; max-width: 680px; }
-  .screen.active { display: flex; flex-direction: column; align-items: center; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; }
 
   /* ── DRAW SCREEN ── */
   #draw-screen {
@@ -156,18 +167,21 @@
     text-align: center;
   }
 
-  .setup-header h1 {
-    font-size: 1.5rem;
-    font-weight: 300;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
   .setup-header p {
     font-size: 0.8rem;
     color: var(--muted);
     line-height: 1.6;
+  }
+
+  .settings-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.6;
+    text-align: center;
+    width: 100%;
   }
 
   .fields { display: flex; flex-direction: column; gap: 28px; width: 100%; }
@@ -316,6 +330,8 @@
 </head>
 <body>
 
+<div class="site-title">Oobleck</div>
+
 <!-- DRAW SCREEN -->
 <section id="draw-screen" class="screen">
   <div class="card-wrap">
@@ -335,7 +351,6 @@
 <!-- SETUP SCREEN -->
 <section id="setup-screen" class="screen">
   <div class="setup-header">
-    <h1>Oobleck</h1>
     <p>Build your profile once. Draw prompts forever.</p>
   </div>
   <div class="fields">
@@ -370,8 +385,9 @@
 <!-- SETTINGS SCREEN -->
 <section id="settings-screen" class="screen">
   <button class="back-link" id="btn-settings-back">← back</button>
-  <div class="setup-header">
-    <h1>Settings</h1>
+  <div class="settings-intro">
+    <p>Oobleck is an homage to the Oblique Strategies card deck by Brian Eno and Peter Schmidt, originally from 1975.</p>
+    <p>Fill in your musical preferences below. The more you enter, the better the results.</p>
   </div>
   <div class="fields">
     <div class="field-group">
