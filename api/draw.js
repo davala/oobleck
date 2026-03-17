@@ -3,31 +3,35 @@
 
 const CATEGORIES = ['influence', 'sonic', 'process', 'wildcard'];
 
-function profileContext(profile) {
+
+function buildSystem(category, profile) {
   const a = (profile.artists     || []).join(', ') || 'none listed';
   const p = (profile.producers   || []).join(', ') || 'none listed';
   const i = (profile.instruments || []).join(', ') || 'none listed';
-  return `The user is a musician/producer.\nTheir influences are: ${a}.\nTheir favorite producers are: ${p}.\nTheir instruments are: ${i}.`;
-}
-
-function buildSystem(category, profile) {
-  if (category === 'wildcard') {
-    return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.`;
+  switch (category) {
+    case 'influence':
+      return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.\nTheir influences are: ${a}.\nTheir favorite producers are: ${p}.\nTheir instruments are: ${i}.\n\nThe instruments are provided as context only — do not instruct the user to record any specific instrument. Never name any artist, producer, or collaborator directly in the output. The influence should be felt, not cited.`;
+    case 'sonic':
+      return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.\nTheir influences are: ${a}.\nTheir favorite producers are: ${p}.`;
+    case 'process':
+      return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.`;
+    case 'wildcard':
+      return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.`;
+    default:
+      return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.`;
   }
-  const ctx = profileContext(profile);
-  return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. ${ctx}`;
 }
 
 function buildUser(category) {
   switch (category) {
     case 'influence':
-      return `Generate a single influence-based creative prompt that references one of their artists or producers, or draws on shared collaborators, recording techniques, or sonic characteristics you can infer from their influences. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation of the reference. One or two sentences maximum.`;
+      return `Generate a single influence-based creative prompt that draws on shared collaborators, recording techniques, era, or sonic characteristics you can infer from their influences. Be specific, lateral, and surprising. Never state the obvious. The prompt should be a single oblique idea or observation — not a multi-step instruction. Return only the prompt itself, no setup, no attribution, no explanation. One or two sentences maximum.`;
     case 'sonic':
-      return `Generate a single sonic-based creative prompt about texture, space, dynamics, timbre, or frequency. Draw on sonic characteristics you can infer from the user's influences but do not name them directly. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+      return `Generate a single sonic-based creative prompt about texture, space, dynamics, timbre, or frequency. Do not name any artist, producer, or collaborator directly. Do not instruct the user to record any specific instrument. The prompt should be a single oblique idea or observation — not a multi-step instruction. Be specific, lateral, and surprising. Never state the obvious. Return only the prompt itself, no setup, no attribution, no explanation. One or two sentences maximum.`;
     case 'process':
-      return `Generate a single process-based creative prompt about workflow, recording technique, constraints, or the physical act of making music. Focus on how the user works, not what it sounds like. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+      return `Generate a single process-based creative prompt about workflow, decision-making, or creative constraints. Focus on how the user thinks and works — not physical stunts or literal body movements. Do not name any artist, producer, or collaborator. The prompt should be a single oblique idea — not a multi-step instruction. Be lateral and surprising. Never state the obvious. Return only the prompt itself, no setup, no attribution, no explanation. One or two sentences maximum.`;
     case 'wildcard':
-      return `Generate a single wildcard creative prompt that has little or nothing to do with music or the user's influences. It should be lateral, surprising, occasionally absurd, and designed to disrupt habitual thinking entirely. It might be an action, an observation, a philosophical provocation, or pure nonsense. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+      return `Generate a single wildcard prompt designed to disrupt habitual thinking entirely. It should have little or nothing to do with recording or instruments. It might be a philosophical provocation, an observation about the world, an absurd constraint, or a complete non-sequitur. Do not start with the word "Record." Do not name any artist, producer, or collaborator. The prompt should be a single oblique idea. Return only the prompt itself, no setup, no explanation. One or two sentences maximum.`;
     default:
       return `Generate a single oblique creative prompt. One or two sentences maximum.`;
   }
