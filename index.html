@@ -633,6 +633,7 @@ btnDraw.addEventListener('click', async () => {
     categoryLabel.textContent = category;
 
     // fade overlay out, then reveal new text
+    cardPlaceholder.style.display = 'none';
     cardOverlay.classList.add('hidden');
     setTimeout(() => {
       cardText.textContent = text;
