@@ -111,6 +111,19 @@
     text-transform: uppercase;
   }
 
+  .card-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: rgba(180, 170, 158, 0.55);
+    z-index: 2;
+    opacity: 1;
+    transition: opacity 120ms ease;
+    pointer-events: none;
+  }
+
+  .card-overlay.hidden { opacity: 0; }
+
   .draw-controls {
     display: flex;
     flex-direction: column;
@@ -331,6 +344,7 @@
     <div class="card" id="card">
       <span class="card-placeholder" id="card-placeholder">draw a card</span>
       <p class="card-text" id="card-text"></p>
+      <div class="card-overlay" id="card-overlay"></div>
     </div>
   </div>
   <div class="draw-controls">
@@ -585,6 +599,7 @@ function appendHistory(text) {
 const btnDraw       = document.getElementById('btn-draw');
 const cardText      = document.getElementById('card-text');
 const cardPlaceholder = document.getElementById('card-placeholder');
+const cardOverlay   = document.getElementById('card-overlay');
 const categoryLabel = document.getElementById('category-label');
 const drawError     = document.getElementById('draw-error');
 
@@ -604,10 +619,10 @@ btnDraw.addEventListener('click', async () => {
   drawError.textContent = '';
   categoryLabel.textContent = '';
 
-  // hide current card text
+  // fade overlay in, clear previous text
+  cardOverlay.classList.remove('hidden');
   cardText.classList.remove('visible');
   cardText.textContent = '';
-  cardPlaceholder.style.display = 'none';
   btnDraw.textContent = '';
   btnDraw.classList.add('dots');
 
@@ -615,10 +630,10 @@ btnDraw.addEventListener('click', async () => {
     const { text, category } = await draw();
 
     appendHistory(text);
-
     categoryLabel.textContent = category;
 
-    // 150ms delay then fade in
+    // fade overlay out, then reveal new text
+    cardOverlay.classList.add('hidden');
     setTimeout(() => {
       cardText.textContent = text;
       requestAnimationFrame(() => {
@@ -626,11 +641,10 @@ btnDraw.addEventListener('click', async () => {
           cardText.classList.add('visible');
         });
       });
-    }, 150);
+    }, 120);
 
   } catch (err) {
-    cardPlaceholder.style.display = '';
-    drawError.textContent = err.message || 'Something went wrong. Check your API key in settings.';
+    drawError.textContent = err.message || 'Something went wrong.';
   } finally {
     btnDraw.classList.remove('dots');
     btnDraw.textContent = 'Draw';
