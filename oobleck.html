@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oobleck</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a1410;
+    --ui-text: #ffffff;
+    --card-face: #f5f0e8;
+    --card-text: #1a1410;
+    --muted: rgba(255,255,255,0.35);
+    --font: "Helvetica Neue", Helvetica, "Arial Nova", Arial, sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--ui-text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; width: 100%; max-width: 680px; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* ── DRAW SCREEN ── */
+  #draw-screen {
+    gap: 32px;
+  }
+
+  .card-wrap {
+    width: 100%;
+    aspect-ratio: 1.618 / 1;
+    position: relative;
+  }
+
+  .card {
+    width: 100%;
+    height: 100%;
+    background: var(--card-face);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* grain texture */
+  .card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    pointer-events: none;
+    opacity: 0.6;
+    mix-blend-mode: multiply;
+  }
+
+  .card-text {
+    font-size: clamp(1.1rem, 3.2vw, 1.55rem);
+    line-height: 1.55;
+    color: var(--card-text);
+    text-align: center;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 300ms ease;
+  }
+
+  .card-text.visible { opacity: 1; }
+
+  .card-placeholder {
+    font-size: 0.8rem;
+    color: rgba(26,20,16,0.3);
+    text-align: center;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+
+  .draw-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .btn-draw {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--ui-text);
+    font-family: var(--font);
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 12px 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 200ms, color 200ms;
+  }
+
+  .btn-draw:hover { border-color: rgba(255,255,255,0.55); }
+  .btn-draw:disabled { opacity: 0.35; cursor: default; }
+
+  .category-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-height: 1em;
+  }
+
+  .screen-footer {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--font);
+    padding: 4px;
+  }
+
+  .screen-footer:hover { color: rgba(255,255,255,0.7); }
+
+  /* ── SETUP / SETTINGS SCREEN ── */
+  #setup-screen, #settings-screen {
+    gap: 40px;
+  }
+
+  .setup-header {
+    text-align: center;
+  }
+
+  .setup-header h1 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .setup-header p {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .fields { display: flex; flex-direction: column; gap: 28px; width: 100%; }
+
+  .field-group { display: flex; flex-direction: column; gap: 10px; }
+
+  .field-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .tag-input-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    min-height: 48px;
+    cursor: text;
+    transition: border-color 200ms;
+  }
+
+  .tag-input-wrap:focus-within { border-color: rgba(255,255,255,0.35); }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    padding: 3px 8px 3px 9px;
+    font-size: 0.8rem;
+    color: var(--ui-text);
+    white-space: nowrap;
+  }
+
+  .tag-remove {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+    font-family: var(--font);
+    transition: color 150ms;
+  }
+
+  .tag-remove:hover { color: var(--ui-text); }
+
+  .tag-input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--ui-text);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    flex: 1;
+    min-width: 120px;
+    caret-color: var(--ui-text);
+  }
+
+  .tag-input::placeholder { color: rgba(255,255,255,0.2); font-size: 0.78rem; }
+
+  .field-hint { font-size: 0.68rem; color: rgba(255,255,255,0.2); }
+
+  /* API key field */
+  .text-input {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    color: var(--ui-text);
+    font-family: var(--font);
+    font-size: 0.83rem;
+    padding: 11px 13px;
+    width: 100%;
+    outline: none;
+    transition: border-color 200ms;
+    letter-spacing: 0.03em;
+  }
+
+  .text-input:focus { border-color: rgba(255,255,255,0.35); }
+  .text-input::placeholder { color: rgba(255,255,255,0.2); }
+
+  .btn-primary {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: var(--ui-text);
+    font-family: var(--font);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 13px 40px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 200ms;
+    align-self: center;
+  }
+
+  .btn-primary:hover { border-color: rgba(255,255,255,0.7); }
+
+  .error-msg {
+    font-size: 0.75rem;
+    color: #e07070;
+    min-height: 1em;
+    text-align: center;
+  }
+
+  /* settings back link */
+  .back-link {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--font);
+    align-self: flex-start;
+    padding: 2px;
+    text-decoration: none;
+  }
+
+  .back-link:hover { color: rgba(255,255,255,0.7); }
+
+  /* loading dots */
+  .dots::after {
+    content: '';
+    animation: dots 1.2s steps(3, end) infinite;
+  }
+
+  @keyframes dots {
+    0%   { content: '.'; }
+    33%  { content: '..'; }
+    66%  { content: '...'; }
+    100% { content: ''; }
+  }
+
+  @media (max-width: 480px) {
+    .card-wrap { aspect-ratio: 1.2 / 1; }
+    .btn-draw { padding: 12px 28px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- DRAW SCREEN -->
+<section id="draw-screen" class="screen">
+  <div class="card-wrap">
+    <div class="card" id="card">
+      <span class="card-placeholder" id="card-placeholder">draw a card</span>
+      <p class="card-text" id="card-text"></p>
+    </div>
+  </div>
+  <div class="draw-controls">
+    <div class="category-label" id="category-label"></div>
+    <button class="btn-draw" id="btn-draw">Draw</button>
+    <div class="error-msg" id="draw-error"></div>
+    <button class="screen-footer" id="btn-open-settings">settings</button>
+  </div>
+</section>
+
+<!-- SETUP SCREEN -->
+<section id="setup-screen" class="screen">
+  <div class="setup-header">
+    <h1>Oobleck</h1>
+    <p>Build your profile once. Draw prompts forever.</p>
+  </div>
+  <div class="fields">
+    <div class="field-group">
+      <label class="field-label">Artists &amp; Bands</label>
+      <div class="tag-input-wrap" id="wrap-artists">
+        <input class="tag-input" id="input-artists"
+          placeholder="e.g. Radiohead, Burial, Joni Mitchell — press Enter" autocomplete="off">
+      </div>
+      <span class="field-hint">Aim for 20–30. The more specific, the better.</span>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Producers</label>
+      <div class="tag-input-wrap" id="wrap-producers">
+        <input class="tag-input" id="input-producers"
+          placeholder="e.g. Brian Eno, Steve Albini — press Enter" autocomplete="off">
+      </div>
+      <span class="field-hint">5 or more helps. Include engineers too.</span>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Instruments &amp; Tools</label>
+      <div class="tag-input-wrap" id="wrap-instruments">
+        <input class="tag-input" id="input-instruments"
+          placeholder="e.g. guitar, Ableton, modular — press Enter" autocomplete="off">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Anthropic API Key</label>
+      <input class="text-input" type="password" id="setup-api-key"
+        placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+      <span class="field-hint">Stored locally in your browser. Never sent anywhere except Anthropic.</span>
+    </div>
+  </div>
+  <button class="btn-primary" id="btn-setup-save">Continue</button>
+  <div class="error-msg" id="setup-error"></div>
+</section>
+
+<!-- SETTINGS SCREEN -->
+<section id="settings-screen" class="screen">
+  <button class="back-link" id="btn-settings-back">← back</button>
+  <div class="setup-header">
+    <h1>Settings</h1>
+  </div>
+  <div class="fields">
+    <div class="field-group">
+      <label class="field-label">Artists &amp; Bands</label>
+      <div class="tag-input-wrap" id="swrap-artists">
+        <input class="tag-input" id="sinput-artists"
+          placeholder="e.g. Radiohead, Burial — press Enter" autocomplete="off">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Producers</label>
+      <div class="tag-input-wrap" id="swrap-producers">
+        <input class="tag-input" id="sinput-producers"
+          placeholder="e.g. Brian Eno, Steve Albini — press Enter" autocomplete="off">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Instruments &amp; Tools</label>
+      <div class="tag-input-wrap" id="swrap-instruments">
+        <input class="tag-input" id="sinput-instruments"
+          placeholder="e.g. guitar, Ableton, modular — press Enter" autocomplete="off">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Anthropic API Key</label>
+      <input class="text-input" type="password" id="settings-api-key"
+        placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+  <button class="btn-primary" id="btn-settings-save">Save</button>
+  <div class="error-msg" id="settings-error"></div>
+</section>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+
+const LS = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+};
+
+let profile = LS.get('profile') || { discipline: 'music', artists: [], producers: [], instruments: [] };
+let apiKey  = LS.get('apiKey')  || '';
+let drawHistory = LS.get('drawHistory') || [];
+
+// ── SCREENS ────────────────────────────────────────────────────────────────
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function init() {
+  if (!apiKey || !profile.artists.length) {
+    loadSetupForm();
+    showScreen('setup-screen');
+  } else {
+    showScreen('draw-screen');
+  }
+}
+
+// ── TAG INPUT ──────────────────────────────────────────────────────────────
+
+function makeTagField(wrapId, inputId, initialTags) {
+  const wrap  = document.getElementById(wrapId);
+  const input = document.getElementById(inputId);
+  let tags = [...(initialTags || [])];
+
+  function render() {
+    wrap.querySelectorAll('.tag').forEach(t => t.remove());
+    tags.forEach((val, i) => {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = val;
+      const btn = document.createElement('button');
+      btn.className = 'tag-remove';
+      btn.textContent = '×';
+      btn.setAttribute('aria-label', `Remove ${val}`);
+      btn.onclick = () => { tags.splice(i, 1); render(); };
+      tag.appendChild(btn);
+      wrap.insertBefore(tag, input);
+    });
+  }
+
+  function addTag(raw) {
+    const vals = raw.split(',').map(s => s.trim()).filter(Boolean);
+    vals.forEach(v => { if (v && !tags.includes(v)) tags.push(v); });
+    render();
+  }
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = input.value.trim().replace(/,$/, '');
+      if (val) { addTag(val); input.value = ''; }
+    } else if (e.key === 'Backspace' && !input.value && tags.length) {
+      tags.pop(); render();
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    const val = input.value.trim().replace(/,$/, '');
+    if (val) { addTag(val); input.value = ''; }
+  });
+
+  wrap.addEventListener('click', e => {
+    if (e.target === wrap) input.focus();
+  });
+
+  render();
+  return { getTags: () => tags };
+}
+
+// ── SETUP SCREEN ───────────────────────────────────────────────────────────
+
+let setupFields;
+
+function loadSetupForm() {
+  setupFields = {
+    artists:     makeTagField('wrap-artists',     'input-artists',     profile.artists),
+    producers:   makeTagField('wrap-producers',   'input-producers',   profile.producers),
+    instruments: makeTagField('wrap-instruments', 'input-instruments', profile.instruments),
+  };
+  document.getElementById('setup-api-key').value = apiKey || '';
+}
+
+document.getElementById('btn-setup-save').addEventListener('click', () => {
+  const key = document.getElementById('setup-api-key').value.trim();
+  const err = document.getElementById('setup-error');
+  if (!key) { err.textContent = 'API key is required.'; return; }
+  if (!setupFields.artists.getTags().length) { err.textContent = 'Add at least one artist.'; return; }
+  err.textContent = '';
+  apiKey = key;
+  profile = {
+    discipline: 'music',
+    artists:     setupFields.artists.getTags(),
+    producers:   setupFields.producers.getTags(),
+    instruments: setupFields.instruments.getTags(),
+  };
+  LS.set('apiKey', apiKey);
+  LS.set('profile', profile);
+  showScreen('draw-screen');
+});
+
+// ── SETTINGS SCREEN ────────────────────────────────────────────────────────
+
+let settingsFields;
+
+document.getElementById('btn-open-settings').addEventListener('click', () => {
+  settingsFields = {
+    artists:     makeTagField('swrap-artists',     'sinput-artists',     profile.artists),
+    producers:   makeTagField('swrap-producers',   'sinput-producers',   profile.producers),
+    instruments: makeTagField('swrap-instruments', 'sinput-instruments', profile.instruments),
+  };
+  document.getElementById('settings-api-key').value = apiKey || '';
+  document.getElementById('settings-error').textContent = '';
+  showScreen('settings-screen');
+});
+
+document.getElementById('btn-settings-back').addEventListener('click', () => {
+  showScreen('draw-screen');
+});
+
+document.getElementById('btn-settings-save').addEventListener('click', () => {
+  const key = document.getElementById('settings-api-key').value.trim();
+  const err = document.getElementById('settings-error');
+  if (!key) { err.textContent = 'API key is required.'; return; }
+  if (!settingsFields.artists.getTags().length) { err.textContent = 'Add at least one artist.'; return; }
+  err.textContent = '';
+  apiKey = key;
+  profile = {
+    discipline: 'music',
+    artists:     settingsFields.artists.getTags(),
+    producers:   settingsFields.producers.getTags(),
+    instruments: settingsFields.instruments.getTags(),
+  };
+  LS.set('apiKey', apiKey);
+  LS.set('profile', profile);
+  showScreen('draw-screen');
+});
+
+// ── PROMPTS ────────────────────────────────────────────────────────────────
+
+const CATEGORIES = ['influence', 'sonic', 'process', 'wildcard'];
+
+function profileContext() {
+  const a = profile.artists.join(', ')     || 'none listed';
+  const p = profile.producers.join(', ')   || 'none listed';
+  const i = profile.instruments.join(', ') || 'none listed';
+  return `The user is a musician/producer.\nTheir influences are: ${a}.\nTheir favorite producers are: ${p}.\nTheir instruments are: ${i}.`;
+}
+
+function buildPrompt(category) {
+  const ctx = profileContext();
+  const base = `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. ${ctx}\n\n`;
+  switch (category) {
+    case 'influence':
+      return base +
+        `Generate a single influence-based creative prompt that references one of their artists or producers, or draws on shared collaborators, recording techniques, or sonic characteristics you can infer from their influences. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation of the reference. One or two sentences maximum.`;
+    case 'sonic':
+      return base +
+        `Generate a single sonic-based creative prompt about texture, space, dynamics, timbre, or frequency. Draw on sonic characteristics you can infer from the user's influences but do not name them directly. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+    case 'process':
+      return base +
+        `Generate a single process-based creative prompt about workflow, recording technique, constraints, or the physical act of making music. Focus on how the user works, not what it sounds like. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+    case 'wildcard':
+      return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.\n\nGenerate a single wildcard creative prompt that has little or nothing to do with music or the user's influences. It should be lateral, surprising, occasionally absurd, and designed to disrupt habitual thinking entirely. It might be an action, an observation, a philosophical provocation, or pure nonsense. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+  }
+}
+
+// ── CLAUDE API ────────────────────────────────────────────────────────────
+
+async function callClaude(prompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-allow-browser': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error?.message || `API error ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content?.[0]?.text?.trim() || '';
+}
+
+// ── DRAW ───────────────────────────────────────────────────────────────────
+
+function isDuplicate(text) {
+  return drawHistory.includes(text);
+}
+
+function appendHistory(text) {
+  drawHistory.unshift(text);
+  if (drawHistory.length > 50) drawHistory = drawHistory.slice(0, 50);
+  LS.set('drawHistory', drawHistory);
+}
+
+const btnDraw       = document.getElementById('btn-draw');
+const cardText      = document.getElementById('card-text');
+const cardPlaceholder = document.getElementById('card-placeholder');
+const categoryLabel = document.getElementById('category-label');
+const drawError     = document.getElementById('draw-error');
+
+async function draw(attempt = 1) {
+  const category = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+  const prompt   = buildPrompt(category);
+
+  let text;
+  try {
+    text = await callClaude(prompt);
+  } catch (err) {
+    throw err;
+  }
+
+  if (isDuplicate(text) && attempt < 3) {
+    return draw(attempt + 1);
+  }
+
+  return { text, category };
+}
+
+btnDraw.addEventListener('click', async () => {
+  btnDraw.disabled = true;
+  drawError.textContent = '';
+  categoryLabel.textContent = '';
+
+  // hide current card text
+  cardText.classList.remove('visible');
+  cardText.textContent = '';
+  cardPlaceholder.style.display = 'none';
+  btnDraw.textContent = '';
+  btnDraw.classList.add('dots');
+
+  try {
+    const { text, category } = await draw();
+
+    appendHistory(text);
+
+    categoryLabel.textContent = category;
+
+    // 150ms delay then fade in
+    setTimeout(() => {
+      cardText.textContent = text;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          cardText.classList.add('visible');
+        });
+      });
+    }, 150);
+
+  } catch (err) {
+    cardPlaceholder.style.display = '';
+    drawError.textContent = err.message || 'Something went wrong. Check your API key in settings.';
+  } finally {
+    btnDraw.classList.remove('dots');
+    btnDraw.textContent = 'Draw';
+    btnDraw.disabled = false;
+  }
+});
+
+// ── BOOT ───────────────────────────────────────────────────────────────────
+
+init();
+</script>
+</body>
+</html>
