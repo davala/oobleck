@@ -159,6 +159,7 @@
     text-transform: uppercase;
     color: var(--muted);
     min-height: 1em;
+    visibility: hidden;
   }
 
   .screen-footer {
@@ -299,21 +300,6 @@
     text-align: center;
   }
 
-  /* settings back link */
-  .back-link {
-    font-size: 0.7rem;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-    cursor: pointer;
-    background: none;
-    border: none;
-    font-family: var(--font);
-    align-self: flex-start;
-    padding: 2px;
-    text-decoration: none;
-  }
-
-  .back-link:hover { color: rgba(255,255,255,0.7); }
 
   /* loading dots */
   .dots::after {
@@ -392,7 +378,6 @@
 
 <!-- SETTINGS SCREEN -->
 <section id="settings-screen" class="screen">
-  <button class="back-link" id="btn-settings-back">← back</button>
   <div class="settings-intro">
     <p>Oobleck is an homage to the Oblique Strategies card deck by Brian Eno and Peter Schmidt, originally from 1975.</p>
     <p>Fill in your musical preferences below. The more you enter, the better the results.</p>
@@ -541,10 +526,6 @@ document.getElementById('btn-open-settings').addEventListener('click', () => {
   };
   document.getElementById('settings-error').textContent = '';
   showScreen('settings-screen');
-});
-
-document.getElementById('btn-settings-back').addEventListener('click', () => {
-  showScreen('draw-screen');
 });
 
 document.getElementById('btn-settings-save').addEventListener('click', () => {
