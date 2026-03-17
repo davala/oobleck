@@ -25,7 +25,7 @@ function buildSystem(category, profile) {
 function buildUser(category) {
   switch (category) {
     case 'influence':
-      return `Generate a single influence-based creative prompt that draws on shared collaborators, recording techniques, era, or sonic characteristics you can infer from their influences. Be specific, lateral, and surprising. Never state the obvious. The prompt should be a single oblique idea or observation — not a multi-step instruction. Return only the prompt itself, no setup, no attribution, no explanation. One or two sentences maximum.`;
+      return `Generate a single influence-based creative prompt that draws on shared collaborators, recording techniques, era, or sonic characteristics you can infer from their influences. Be specific, lateral, and surprising. Never state the obvious. The prompt should be a single oblique idea or observation — not a multi-step instruction. Return only the prompt itself, no setup, no attribution, no explanation. Do not suggest recording through degraded or damaged equipment. Do not suggest anything involving a radio or tape recorder. One or two sentences maximum.`;
     case 'sonic':
       return `Generate a single sonic-based creative prompt about texture, space, dynamics, timbre, or frequency. Do not name any artist, producer, or collaborator directly. Do not instruct the user to record any specific instrument. The prompt should be a single oblique idea or observation — not a multi-step instruction. Be specific, lateral, and surprising. Never state the obvious. Return only the prompt itself, no setup, no attribution, no explanation. One or two sentences maximum.`;
     case 'process':
