@@ -79,6 +79,7 @@ module.exports = async function handler(req, res) {
   const requestBody = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1000,
+    temperature: 1.0,
     system: buildSystem(category, profile),
     messages: [{ role: 'user', content: buildUser(category) }],
   };
