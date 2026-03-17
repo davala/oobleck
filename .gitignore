@@ -10,3 +10,14 @@ Thumbs.db
 
 # Claude
 .claude/
+
+# Vercel
+.vercel/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Node
+node_modules/

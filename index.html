@@ -360,12 +360,6 @@
           placeholder="e.g. guitar, Ableton, modular — press Enter" autocomplete="off">
       </div>
     </div>
-    <div class="field-group">
-      <label class="field-label">Anthropic API Key</label>
-      <input class="text-input" type="password" id="setup-api-key"
-        placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
-      <span class="field-hint">Stored locally in your browser. Never sent anywhere except Anthropic.</span>
-    </div>
   </div>
   <button class="btn-primary" id="btn-setup-save">Continue</button>
   <div class="error-msg" id="setup-error"></div>
@@ -399,11 +393,6 @@
           placeholder="e.g. guitar, Ableton, modular — press Enter" autocomplete="off">
       </div>
     </div>
-    <div class="field-group">
-      <label class="field-label">Anthropic API Key</label>
-      <input class="text-input" type="password" id="settings-api-key"
-        placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
-    </div>
   </div>
   <button class="btn-primary" id="btn-settings-save">Save</button>
   <div class="error-msg" id="settings-error"></div>
@@ -418,7 +407,6 @@ const LS = {
 };
 
 let profile = LS.get('profile') || { discipline: 'music', artists: [], producers: [], instruments: [] };
-let apiKey  = LS.get('apiKey')  || '';
 let drawHistory = LS.get('drawHistory') || [];
 
 // ── SCREENS ────────────────────────────────────────────────────────────────
@@ -429,7 +417,7 @@ function showScreen(id) {
 }
 
 function init() {
-  if (!apiKey || !profile.artists.length) {
+  if (!profile.artists.length) {
     loadSetupForm();
     showScreen('setup-screen');
   } else {
@@ -499,23 +487,18 @@ function loadSetupForm() {
     producers:   makeTagField('wrap-producers',   'input-producers',   profile.producers),
     instruments: makeTagField('wrap-instruments', 'input-instruments', profile.instruments),
   };
-  document.getElementById('setup-api-key').value = apiKey || '';
 }
 
 document.getElementById('btn-setup-save').addEventListener('click', () => {
-  const key = document.getElementById('setup-api-key').value.trim();
   const err = document.getElementById('setup-error');
-  if (!key) { err.textContent = 'API key is required.'; return; }
   if (!setupFields.artists.getTags().length) { err.textContent = 'Add at least one artist.'; return; }
   err.textContent = '';
-  apiKey = key;
   profile = {
     discipline: 'music',
     artists:     setupFields.artists.getTags(),
     producers:   setupFields.producers.getTags(),
     instruments: setupFields.instruments.getTags(),
   };
-  LS.set('apiKey', apiKey);
   LS.set('profile', profile);
   showScreen('draw-screen');
 });
@@ -530,7 +513,6 @@ document.getElementById('btn-open-settings').addEventListener('click', () => {
     producers:   makeTagField('swrap-producers',   'sinput-producers',   profile.producers),
     instruments: makeTagField('swrap-instruments', 'sinput-instruments', profile.instruments),
   };
-  document.getElementById('settings-api-key').value = apiKey || '';
   document.getElementById('settings-error').textContent = '';
   showScreen('settings-screen');
 });
@@ -540,75 +522,35 @@ document.getElementById('btn-settings-back').addEventListener('click', () => {
 });
 
 document.getElementById('btn-settings-save').addEventListener('click', () => {
-  const key = document.getElementById('settings-api-key').value.trim();
   const err = document.getElementById('settings-error');
-  if (!key) { err.textContent = 'API key is required.'; return; }
   if (!settingsFields.artists.getTags().length) { err.textContent = 'Add at least one artist.'; return; }
   err.textContent = '';
-  apiKey = key;
   profile = {
     discipline: 'music',
     artists:     settingsFields.artists.getTags(),
     producers:   settingsFields.producers.getTags(),
     instruments: settingsFields.instruments.getTags(),
   };
-  LS.set('apiKey', apiKey);
   LS.set('profile', profile);
   showScreen('draw-screen');
 });
 
-// ── PROMPTS ────────────────────────────────────────────────────────────────
+// ── API CALL ──────────────────────────────────────────────────────────────
 
 const CATEGORIES = ['influence', 'sonic', 'process', 'wildcard'];
 
-function profileContext() {
-  const a = profile.artists.join(', ')     || 'none listed';
-  const p = profile.producers.join(', ')   || 'none listed';
-  const i = profile.instruments.join(', ') || 'none listed';
-  return `The user is a musician/producer.\nTheir influences are: ${a}.\nTheir favorite producers are: ${p}.\nTheir instruments are: ${i}.`;
-}
-
-function buildPrompt(category) {
-  const ctx = profileContext();
-  const base = `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. ${ctx}\n\n`;
-  switch (category) {
-    case 'influence':
-      return base +
-        `Generate a single influence-based creative prompt that references one of their artists or producers, or draws on shared collaborators, recording techniques, or sonic characteristics you can infer from their influences. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation of the reference. One or two sentences maximum.`;
-    case 'sonic':
-      return base +
-        `Generate a single sonic-based creative prompt about texture, space, dynamics, timbre, or frequency. Draw on sonic characteristics you can infer from the user's influences but do not name them directly. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
-    case 'process':
-      return base +
-        `Generate a single process-based creative prompt about workflow, recording technique, constraints, or the physical act of making music. Focus on how the user works, not what it sounds like. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
-    case 'wildcard':
-      return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.\n\nGenerate a single wildcard creative prompt that has little or nothing to do with music or the user's influences. It should be lateral, surprising, occasionally absurd, and designed to disrupt habitual thinking entirely. It might be an action, an observation, a philosophical provocation, or pure nonsense. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
-  }
-}
-
-// ── CLAUDE API ────────────────────────────────────────────────────────────
-
-async function callClaude(prompt) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+async function callDraw(category) {
+  const res = await fetch('/api/draw', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category, profile }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error?.message || `API error ${res.status}`);
+    throw new Error(body?.error || `Error ${res.status}`);
   }
   const data = await res.json();
-  return data.content?.[0]?.text?.trim() || '';
+  return data.text || '';
 }
 
 // ── DRAW ───────────────────────────────────────────────────────────────────
@@ -631,14 +573,7 @@ const drawError     = document.getElementById('draw-error');
 
 async function draw(attempt = 1) {
   const category = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
-  const prompt   = buildPrompt(category);
-
-  let text;
-  try {
-    text = await callClaude(prompt);
-  } catch (err) {
-    throw err;
-  }
+  const text     = await callDraw(category);
 
   if (isDuplicate(text) && attempt < 3) {
     return draw(attempt + 1);
