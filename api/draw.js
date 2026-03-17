@@ -10,23 +10,26 @@ function profileContext(profile) {
   return `The user is a musician/producer.\nTheir influences are: ${a}.\nTheir favorite producers are: ${p}.\nTheir instruments are: ${i}.`;
 }
 
-function buildPrompt(category, profile) {
-  const ctx  = profileContext(profile);
-  const base = `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. ${ctx}\n\n`;
+function buildSystem(category, profile) {
+  if (category === 'wildcard') {
+    return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.`;
+  }
+  const ctx = profileContext(profile);
+  return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. ${ctx}`;
+}
+
+function buildUser(category) {
   switch (category) {
     case 'influence':
-      return base +
-        `Generate a single influence-based creative prompt that references one of their artists or producers, or draws on shared collaborators, recording techniques, or sonic characteristics you can infer from their influences. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation of the reference. One or two sentences maximum.`;
+      return `Generate a single influence-based creative prompt that references one of their artists or producers, or draws on shared collaborators, recording techniques, or sonic characteristics you can infer from their influences. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation of the reference. One or two sentences maximum.`;
     case 'sonic':
-      return base +
-        `Generate a single sonic-based creative prompt about texture, space, dynamics, timbre, or frequency. Draw on sonic characteristics you can infer from the user's influences but do not name them directly. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+      return `Generate a single sonic-based creative prompt about texture, space, dynamics, timbre, or frequency. Draw on sonic characteristics you can infer from the user's influences but do not name them directly. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
     case 'process':
-      return base +
-        `Generate a single process-based creative prompt about workflow, recording technique, constraints, or the physical act of making music. Focus on how the user works, not what it sounds like. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+      return `Generate a single process-based creative prompt about workflow, recording technique, constraints, or the physical act of making music. Focus on how the user works, not what it sounds like. Be specific, lateral, and surprising. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
     case 'wildcard':
-      return `You are a creative prompt generator in the spirit of Brian Eno's Oblique Strategies. The user is a musician/producer.\n\nGenerate a single wildcard creative prompt that has little or nothing to do with music or the user's influences. It should be lateral, surprising, occasionally absurd, and designed to disrupt habitual thinking entirely. It might be an action, an observation, a philosophical provocation, or pure nonsense. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
+      return `Generate a single wildcard creative prompt that has little or nothing to do with music or the user's influences. It should be lateral, surprising, occasionally absurd, and designed to disrupt habitual thinking entirely. It might be an action, an observation, a philosophical provocation, or pure nonsense. Never state the obvious. Return only the oblique suggestion itself — no setup, no attribution, no explanation. One or two sentences maximum.`;
     default:
-      return base + `Generate a single oblique creative prompt. One or two sentences maximum.`;
+      return `Generate a single oblique creative prompt. One or two sentences maximum.`;
   }
 }
 
@@ -69,12 +72,11 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const prompt = buildPrompt(category, profile);
-
   const requestBody = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1000,
-    messages: [{ role: 'user', content: prompt }],
+    system: buildSystem(category, profile),
+    messages: [{ role: 'user', content: buildUser(category) }],
   };
   console.log('[draw] request body:', JSON.stringify(requestBody));
 
