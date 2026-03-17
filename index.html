@@ -314,9 +314,37 @@
     100% { content: ''; }
   }
 
-  @media (max-width: 480px) {
-    .card-wrap { aspect-ratio: 1.2 / 1; }
-    .btn-draw { padding: 12px 28px; }
+  @media (max-width: 600px) {
+    body {
+      padding: 20px 20px;
+    }
+
+    .site-title {
+      padding-bottom: 20px;
+    }
+
+    #draw-screen {
+      gap: 20px;
+    }
+
+    #setup-screen, #settings-screen {
+      gap: 24px;
+    }
+
+    .draw-controls {
+      gap: 14px;
+    }
+
+    .btn-draw {
+      width: 160px;
+      height: 44px;
+      line-height: 44px;
+    }
+
+    .tag-input {
+      min-width: 80px;
+      font-size: 16px; /* prevent iOS auto-zoom on focus */
+    }
   }
 </style>
 </head>
